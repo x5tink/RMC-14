@@ -43,12 +43,15 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
     [Dependency] private readonly SharedTransformSystem _transform = default!;
 
     private readonly Dictionary<EntProtoId, EntityUid> _surgeries = new();
-    private static readonly ProtoId<TagPrototype> CanDoSurgeryOnTag = "RMCCanDoSurgeryOn";
-    private static readonly ProtoId<TagPrototype> ImprovisedToolSuitabilityTag = "RMCImprovisedSurgeryTool";
-    private static readonly ProtoId<TagPrototype> SubStandardToolSuitabilityTag = "RMCSubStandardSurgeryTool";
-    private static readonly ProtoId<TagPrototype> StandardToolSuitabilityTag = "RMCStandardSurgeryTool";
-    private static readonly ProtoId<TagPrototype> ImprovedToolSuitabilityTag = "RMCImprovedSurgeryTool";
-    private static readonly ProtoId<TagPrototype> IdealToolSuitabilityTag = "RMCIdealSurgeryTool";
+    private static readonly ProtoId<TagPrototype> ToolIdealTag = "RMCSurgeryToolIdeal";
+    private static readonly ProtoId<TagPrototype> ToolSuboptimalTag = "RMCSurgeryToolSuboptimal";
+    private static readonly ProtoId<TagPrototype> ToolSubstituteTag = "RMCSurgeryToolSubstitute";
+    private static readonly ProtoId<TagPrototype> ToolBadSubstituteTag = "RMCSurgeryToolBadSubstitute";
+    private static readonly ProtoId<TagPrototype> ToolAwfulTag = "RMCSurgeryToolAwful";
+    private static readonly ProtoId<TagPrototype> SurfaceIdealTag = "RMCSurgerySurfaceIdeal";
+    private static readonly ProtoId<TagPrototype> SurfaceAdequateTag = "RMCSurgerySurfaceAdequate";
+    private static readonly ProtoId<TagPrototype> SurfaceUnsuitedTag = "RMCSurgerySurfaceUnsuited";
+    private static readonly ProtoId<TagPrototype> SurfaceAwfulTag = "RMCSurgerySurfaceAwful";
 
     public override void Initialize()
     {
@@ -246,13 +249,22 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
     private int GetSurfaceSuitabilityScore(EntityUid body)
     {
         if (!TryComp(body, out BuckleComponent? buckle) || !Exists(buckle.BuckledTo))
-            return -1;
+            return -2;
 
         if (HasComp<CMOperatingTableComponent>(buckle.BuckledTo))
-            return 1;
-
-        if (TryComp(buckle.BuckledTo, out TagComponent? tags) && _tags.HasTag(tags, CanDoSurgeryOnTag))
             return 0;
+
+        if (!TryComp(buckle.BuckledTo, out TagComponent? tags))
+            return -1;
+
+        if (_tags.HasTag(tags, SurfaceIdealTag) || _tags.HasTag(tags, SurfaceAdequateTag))
+            return 0;
+
+        if (_tags.HasTag(tags, SurfaceUnsuitedTag))
+            return -1;
+
+        if (_tags.HasTag(tags, SurfaceAwfulTag))
+            return -2;
 
         return -1;
     }
@@ -279,25 +291,19 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
             return false;
         }
 
-        if (_tags.HasTag(tags, IdealToolSuitabilityTag) || _tags.HasTag(tags, ImprovedToolSuitabilityTag))
-        {
-            suitability = 1;
-            return true;
-        }
-
-        if (_tags.HasTag(tags, StandardToolSuitabilityTag))
+        if (_tags.HasTag(tags, ToolIdealTag) || _tags.HasTag(tags, ToolSuboptimalTag) || _tags.HasTag(tags, ToolSubstituteTag))
         {
             suitability = 0;
             return true;
         }
 
-        if (_tags.HasTag(tags, SubStandardToolSuitabilityTag))
+        if (_tags.HasTag(tags, ToolBadSubstituteTag))
         {
             suitability = -1;
             return true;
         }
 
-        if (_tags.HasTag(tags, ImprovisedToolSuitabilityTag))
+        if (_tags.HasTag(tags, ToolAwfulTag))
         {
             suitability = -2;
             return true;

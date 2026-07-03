@@ -119,7 +119,7 @@
     minimumClawStrength: ImpossiblySharp
   - type: Tag
     tags:
-    - RMCCanDoSurgeryOn
+    - RMCSurgerySurfaceAdequate
   - type: PhysicalComposition
     materialComposition:
       RMCPlastic: 6000

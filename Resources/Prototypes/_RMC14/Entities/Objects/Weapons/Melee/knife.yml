@@ -32,7 +32,7 @@
     - Knife
     - RMCAttachmentBarrel
     - RMCM5Bayonet
-    - RMCImprovisedSurgeryTool
+    - RMCSurgeryToolAwful
   - type: CMSurgeryTool
   - type: CMScalpel
   - type: Sprite

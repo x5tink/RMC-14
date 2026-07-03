@@ -25,7 +25,7 @@
   components:
   - type: Tag
     tags:
-    - RMCStandardSurgeryTool
+    - RMCSurgeryToolSuboptimal
 
   - type: CMSurgeryTool
   - type: Sprite
@@ -59,7 +59,7 @@
   components:
   - type: Tag
     tags:
-    - RMCStandardSurgeryTool
+    - RMCSurgeryToolSuboptimal
 
   - type: CMSurgeryTool
   - type: Sprite
@@ -93,7 +93,7 @@
   components:
   - type: Tag
     tags:
-    - RMCStandardSurgeryTool
+    - RMCSurgeryToolSuboptimal
 
   - type: CMSurgeryTool
   - type: Sprite
@@ -134,7 +134,7 @@
   components:
   - type: Tag
     tags:
-    - RMCStandardSurgeryTool
+    - RMCSurgeryToolSuboptimal
 
   - type: CMSurgeryTool
   - type: Sprite
@@ -199,7 +199,7 @@
   - type: Tag
     tags:
     - RMCScalpel
-    - RMCStandardSurgeryTool
+    - RMCSurgeryToolSuboptimal
 
   - type: PhysicalComposition
     materialComposition:
@@ -317,7 +317,7 @@
   components:
   - type: Tag
     tags:
-    - RMCStandardSurgeryTool
+    - RMCSurgeryToolSuboptimal
 
   - type: CMSurgeryTool
   - type: Sprite
@@ -363,7 +363,7 @@
   components: # TODO RMC14
   - type: Tag
     tags:
-    - RMCStandardSurgeryTool
+    - RMCSurgeryToolSuboptimal
 
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/bonesetter.rsi
@@ -398,7 +398,7 @@
   components: # TODO RMC14
   - type: Tag
     tags:
-    - RMCStandardSurgeryTool
+    - RMCSurgeryToolSuboptimal
 
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/wound_clamp.rsi
@@ -417,7 +417,7 @@
   components: # TODO RMC14
   - type: Tag
     tags:
-    - RMCStandardSurgeryTool
+    - RMCSurgeryToolSuboptimal
 
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/scalpel.rsi
@@ -436,7 +436,7 @@
   components:
   - type: Tag
     tags:
-    - RMCStandardSurgeryTool
+    - RMCSurgeryToolSuboptimal
 
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/bone_gel.rsi
