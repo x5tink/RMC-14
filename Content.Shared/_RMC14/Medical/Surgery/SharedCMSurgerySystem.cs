@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using Content.Shared._RMC14.Marines.Skills;
 using Content.Shared._RMC14.Medical.Surgery.Conditions;
+using Content.Shared._RMC14.Medical.Surgery.Steps;
 using Content.Shared._RMC14.Medical.Surgery.Steps.Parts;
 using Content.Shared._RMC14.Xenonids.Organs;
 using Content.Shared._RMC14.Xenonids.Parasite;
@@ -14,10 +15,12 @@ using Content.Shared.Interaction;
 using Content.Shared.Mobs.Systems;
 using Content.Shared.Popups;
 using Content.Shared.Standing;
+using Content.Shared.Tag;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Map;
 using Robust.Shared.Network;
 using Robust.Shared.Prototypes;
+using Robust.Shared.Random;
 
 namespace Content.Shared._RMC14.Medical.Surgery;
 
@@ -32,12 +35,20 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
     [Dependency] private readonly INetManager _net = default!;
     [Dependency] private readonly SharedPopupSystem _popup = default!;
     [Dependency] private readonly IPrototypeManager _prototypes = default!;
+    [Dependency] private readonly IRobustRandom _random = default!;
     [Dependency] private readonly RotateToFaceSystem _rotateToFace = default!;
     [Dependency] private readonly SkillsSystem _skills = default!;
     [Dependency] private readonly StandingStateSystem _standing = default!;
+    [Dependency] private readonly TagSystem _tags = default!;
     [Dependency] private readonly SharedTransformSystem _transform = default!;
 
     private readonly Dictionary<EntProtoId, EntityUid> _surgeries = new();
+    private static readonly ProtoId<TagPrototype> CanDoSurgeryOnTag = "RMCCanDoSurgeryOn";
+    private static readonly ProtoId<TagPrototype> ImprovisedToolSuitabilityTag = "RMCImprovisedSurgeryTool";
+    private static readonly ProtoId<TagPrototype> SubStandardToolSuitabilityTag = "RMCSubStandardSurgeryTool";
+    private static readonly ProtoId<TagPrototype> StandardToolSuitabilityTag = "RMCStandardSurgeryTool";
+    private static readonly ProtoId<TagPrototype> ImprovedToolSuitabilityTag = "RMCImprovedSurgeryTool";
+    private static readonly ProtoId<TagPrototype> IdealToolSuitabilityTag = "RMCIdealSurgeryTool";
 
     public override void Initialize()
     {
@@ -68,9 +79,16 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
             args.Target is not { } target ||
             !IsSurgeryValid(ent, target, args.Surgery, args.Step, out var surgery, out var part, out var step) ||
             !PreviousStepsComplete(ent, part, surgery, args.Step) ||
-            !CanPerformStep(args.User, ent, part.Comp.PartType, step, false))
+            !CanPerformStep(args.User, ent, part.Comp.PartType, step, false, out _, out _, out var validTools))
         {
             Log.Warning($"{ToPrettyString(args.User)} tried to start invalid surgery.");
+            return;
+        }
+
+        if (_net.IsServer &&
+            !TryStepSuccess(ent.Owner, args.User, validTools, out var successChance))
+        {
+            _popup.PopupEntity(Loc.GetString("rmc-surgery-step-failed", ("chance", (int) (successChance * 100))), args.User, PopupType.SmallCaution);
             return;
         }
 
@@ -184,6 +202,108 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
                 return true;
         }
 
+        return false;
+    }
+
+    private bool TryStepSuccess(EntityUid body, EntityUid user, HashSet<EntityUid>? tools, out float successChance)
+    {
+        var totalPenalty = GetToolSuitabilityScore(tools) + GetSurfaceSuitabilityScore(body) + GetSkillCompensationScore(user);
+        var failureChance = GetFailureChance(totalPenalty);
+        successChance = 1f - failureChance;
+
+        return _random.Prob(successChance);
+    }
+
+    private static float GetFailureChance(int totalPenalty)
+    {
+        return totalPenalty switch
+        {
+            >= 0 => 0f,
+            -1 => 0.05f,
+            -2 => 0.25f,
+            _ => 0.5f,
+        };
+    }
+
+    private int GetSkillCompensationScore(EntityUid user)
+    {
+        if (!TryComp(user, out SkillsComponent? skills))
+            return 0;
+
+        if (!_skills.SkillNames.TryGetValue("RMCSkillSurgery", out var surgerySkill))
+            return 0;
+
+        Entity<SkillsComponent?> userSkills = (user, skills);
+        var skillLevel = _skills.GetSkill(userSkills, surgerySkill);
+        return skillLevel switch
+        {
+            <= 0 => 0,
+            1 => 1,
+            _ => 3,
+        };
+    }
+
+    private int GetSurfaceSuitabilityScore(EntityUid body)
+    {
+        if (!TryComp(body, out BuckleComponent? buckle) || !Exists(buckle.BuckledTo))
+            return -1;
+
+        if (HasComp<CMOperatingTableComponent>(buckle.BuckledTo))
+            return 1;
+
+        if (TryComp(buckle.BuckledTo, out TagComponent? tags) && _tags.HasTag(tags, CanDoSurgeryOnTag))
+            return 0;
+
+        return -1;
+    }
+
+    private int GetToolSuitabilityScore(HashSet<EntityUid>? tools)
+    {
+        if (tools == null)
+            return 0;
+
+        foreach (var tool in tools)
+        {
+            if (TryGetToolSuitability(tool, out var suitability))
+                return suitability;
+        }
+
+        return 0;
+    }
+
+    private bool TryGetToolSuitability(EntityUid tool, out int suitability)
+    {
+        if (!TryComp(tool, out TagComponent? tags))
+        {
+            suitability = default;
+            return false;
+        }
+
+        if (_tags.HasTag(tags, IdealToolSuitabilityTag) || _tags.HasTag(tags, ImprovedToolSuitabilityTag))
+        {
+            suitability = 1;
+            return true;
+        }
+
+        if (_tags.HasTag(tags, StandardToolSuitabilityTag))
+        {
+            suitability = 0;
+            return true;
+        }
+
+        if (_tags.HasTag(tags, SubStandardToolSuitabilityTag))
+        {
+            suitability = -1;
+            return true;
+        }
+
+        if (_tags.HasTag(tags, ImprovisedToolSuitabilityTag))
+        {
+            suitability = -2;
+            return true;
+        }
+
+        suitability = default;
         return false;
     }
 

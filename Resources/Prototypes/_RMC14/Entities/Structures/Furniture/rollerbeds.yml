@@ -117,6 +117,9 @@
   - type: Appearance
   - type: ReceiverXenoClaws
     minimumClawStrength: ImpossiblySharp
+  - type: Tag
+    tags:
+    - RMCCanDoSurgeryOn
   - type: PhysicalComposition
     materialComposition:
       RMCPlastic: 6000

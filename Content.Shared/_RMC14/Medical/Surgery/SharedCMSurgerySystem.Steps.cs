@@ -36,6 +36,7 @@ public abstract partial class SharedCMSurgerySystem
 
     private void OnToolStep(Entity<CMSurgeryStepComponent> ent, ref CMSurgeryStepEvent args)
     {
+        EntityUid? firstValidTool = null;
         if (ent.Comp.Tool != null)
         {
             foreach (var reg in ent.Comp.Tool.Values)
@@ -43,12 +44,21 @@ public abstract partial class SharedCMSurgerySystem
                 if (!AnyHaveComp(args.Tools, reg.Component, out var tool))
                     return;
 
-                if (_net.IsServer &&
-                    TryComp(tool, out CMSurgeryToolComponent? toolComp) &&
-                    toolComp.EndSound != null)
-                {
-                    _audio.PlayPvs(toolComp.EndSound, tool);
-                }
+                firstValidTool ??= tool;
+            }
+        }
+
+        if (_net.IsServer)
+        {
+            if (ent.Comp.EndSound != null)
+            {
+                _audio.PlayPvs(ent.Comp.EndSound, args.Body);
+            }
+            else if (firstValidTool is { } validTool &&
+                     TryComp(validTool, out CMSurgeryToolComponent? toolComp) &&
+                     toolComp.EndSound != null)
+            {
+                _audio.PlayPvs(toolComp.EndSound, validTool);
             }
         }
 
@@ -201,14 +211,22 @@ public abstract partial class SharedCMSurgerySystem
         if (!CanPerformStep(user, body, part.Comp.PartType, step, true, out _, out _, out var validTools))
             return;
 
-        if (_net.IsServer && validTools?.Count > 0)
+        if (_net.IsServer)
         {
-            foreach (var tool in validTools)
+            if (TryComp(step, out CMSurgeryStepComponent? stepComp) &&
+                stepComp.StartSound != null)
             {
-                if (TryComp(tool, out CMSurgeryToolComponent? toolComp) &&
-                    toolComp.StartSound != null)
+                _audio.PlayPvs(stepComp.StartSound, body);
+            }
+            else if (validTools?.Count > 0)
+            {
+                foreach (var tool in validTools)
                 {
-                    _audio.PlayPvs(toolComp.StartSound, tool);
+                    if (TryComp(tool, out CMSurgeryToolComponent? toolComp) &&
+                        toolComp.StartSound != null)
+                    {
+                        _audio.PlayPvs(toolComp.StartSound, tool);
+                    }
                 }
             }
         }

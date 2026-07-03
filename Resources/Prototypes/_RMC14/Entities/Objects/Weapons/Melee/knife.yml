@@ -32,6 +32,9 @@
     - Knife
     - RMCAttachmentBarrel
     - RMCM5Bayonet
+    - RMCImprovisedSurgeryTool
+  - type: CMSurgeryTool
+  - type: CMScalpel
   - type: Sprite
     sprite: _RMC14/Objects/Weapons/Melee/m5_bayonet.rsi
     state: icon

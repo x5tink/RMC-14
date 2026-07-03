@@ -197,3 +197,21 @@
 
 - type: Tag
   id: RMCDataDisk
+
+- type: Tag
+  id: RMCImprovisedSurgeryTool
+
+- type: Tag
+  id: RMCSubStandardSurgeryTool
+
+- type: Tag
+  id: RMCStandardSurgeryTool
+
+- type: Tag
+  id: RMCImprovedSurgeryTool
+
+- type: Tag
+  id: RMCIdealSurgeryTool
+
+- type: Tag
+  id: RMCCanDoSurgeryOn
