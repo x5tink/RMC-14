@@ -72,21 +72,3 @@
   - type: CMSurgeryPartCondition
     part: Head
 
-- type: entity
-  parent: CMSurgeryBase
-  id: RMCSurgeryOpenIncisionWithIMS
-  name: Open Incision with IMS
-  components:
-  - type: CMSurgery
-    steps:
-    - RMCSurgeryStepOpenIncisionWithIMS
-
-- type: entity
-  parent: CMSurgeryBase
-  id: RMCSurgeryOpenIncisionWithLaserScalpel
-  name: Open Incision with Laser Scalpel
-  components:
-  - type: CMSurgery
-    steps:
-    - RMCSurgeryStepOpenIncisionWithLaserScalpel
-    - CMSurgeryStepRetractSkin

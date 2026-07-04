@@ -173,20 +173,15 @@ public sealed class CMSurgeryBui : BoundUserInterface
 
             foreach (var surgeryId in surgeries)
             {
-                var effectiveSurgeryId = GetVisibleSurgeryId(surgeryId);
-
-                if (effectiveSurgeryId == null)
-                    continue;
-
-                if (_system.GetSingleton(effectiveSurgeryId.Value) is not { } surgery ||
+                if (_system.GetSingleton(surgeryId) is not { } surgery ||
                     !_entities.TryGetComponent(surgery, out CMSurgeryComponent? surgeryComp))
                 {
                     continue;
                 }
 
-                if (oldPart == part && oldSurgery?.Proto == effectiveSurgeryId.Value)
+                if (oldPart == part && oldSurgery?.Proto == surgeryId)
                 {
-                    OnSurgeryPressed((surgery, surgeryComp), netPart, effectiveSurgeryId.Value);
+                    OnSurgeryPressed((surgery, surgeryComp), netPart, surgeryId);
                     break;
                 }
             }
@@ -205,8 +200,10 @@ public sealed class CMSurgeryBui : BoundUserInterface
 
     private void AddStep(EntProtoId stepId, NetEntity netPart, EntProtoId surgeryId)
     {
+        var effectiveStepId = GetEffectiveStepId(surgeryId, stepId);
+
         if (_window == null ||
-            _system.GetSingleton(stepId) is not { } step)
+            _system.GetSingleton(effectiveStepId) is not { } step)
         {
             return;
         }
@@ -215,7 +212,7 @@ public sealed class CMSurgeryBui : BoundUserInterface
         stepName.AddText(_entities.GetComponent<MetaDataComponent>(step).EntityName);
 
         var stepButton = new CMSurgeryStepButton { Step = step };
-        stepButton.Button.OnPressed += _ => SendMessage(new CMSurgeryStepChosenBuiMsg(netPart, surgeryId, stepId));
+        stepButton.Button.OnPressed += _ => SendMessage(new CMSurgeryStepChosenBuiMsg(netPart, surgeryId, effectiveStepId));
 
         _window.Steps.AddChild(stepButton);
     }
@@ -232,8 +229,7 @@ public sealed class CMSurgeryBui : BoundUserInterface
 
         if (surgery.Comp.Requirement is { } requirementId)
         {
-            var effectiveRequirementId = GetVisibleSurgeryId(requirementId) ?? requirementId;
-            if (_system.GetSingleton(effectiveRequirementId) is { } requirement)
+            if (_system.GetSingleton(requirementId) is { } requirement)
             {
                 var label = new XenoChoiceControl();
                 label.Button.OnPressed += _ =>
@@ -241,7 +237,7 @@ public sealed class CMSurgeryBui : BoundUserInterface
                     _previousSurgeries.Add(surgeryId);
 
                     if (_entities.TryGetComponent(requirement, out CMSurgeryComponent? requirementComp))
-                        OnSurgeryPressed((requirement, requirementComp), netPart, effectiveRequirementId);
+                        OnSurgeryPressed((requirement, requirementComp), netPart, requirementId);
                 };
 
                 var msg = new FormattedMessage();
@@ -276,22 +272,17 @@ public sealed class CMSurgeryBui : BoundUserInterface
         var seenSurgeries = new HashSet<EntProtoId>();
         foreach (var surgeryId in surgeryIds)
         {
-            var effectiveSurgeryId = GetVisibleSurgeryId(surgeryId);
-
-            if (effectiveSurgeryId == null)
+            if (!seenSurgeries.Add(surgeryId))
                 continue;
 
-            if (!seenSurgeries.Add(effectiveSurgeryId.Value))
-                continue;
-
-            if (_system.GetSingleton(effectiveSurgeryId.Value) is not { } surgery ||
+            if (_system.GetSingleton(surgeryId) is not { } surgery ||
                 !_entities.TryGetComponent(surgery, out CMSurgeryComponent? surgeryComp))
             {
                 continue;
             }
 
             var name = _entities.GetComponent<MetaDataComponent>(surgery).EntityName;
-            surgeries.Add(((surgery, surgeryComp), effectiveSurgeryId.Value, name));
+            surgeries.Add(((surgery, surgeryComp), surgeryId, name));
         }
 
         surgeries.Sort((a, b ) =>
@@ -316,19 +307,18 @@ public sealed class CMSurgeryBui : BoundUserInterface
         View(ViewType.Surgeries);
     }
 
-    private EntProtoId? GetVisibleSurgeryId(EntProtoId surgeryId)
+    private EntProtoId GetEffectiveStepId(EntProtoId surgeryId, EntProtoId stepId)
     {
-        var hasIMS = HasOpenIncisionToolInHand(OpenIncisionToolType.IMS);
-        var hasLaserScalpel = HasOpenIncisionToolInHand(OpenIncisionToolType.LaserScalpel);
+        if (surgeryId != "CMSurgeryOpenIncision" || stepId != "CMSurgeryStepOpenIncisionScalpel")
+            return stepId;
 
-        return surgeryId switch
-        {
-            var id when id == "RMCSurgeryOpenIncisionWithIMS" => hasIMS ? surgeryId : (EntProtoId?) null,
-            var id when id == "RMCSurgeryOpenIncisionWithLaserScalpel" => !hasIMS && hasLaserScalpel ? surgeryId : (EntProtoId?) null,
-            var id when id == "CMSurgeryOpenIncision" && hasIMS => "RMCSurgeryOpenIncisionWithIMS",
-            var id when id == "CMSurgeryOpenIncision" && hasLaserScalpel => "RMCSurgeryOpenIncisionWithLaserScalpel",
-            _ => surgeryId,
-        };
+        if (HasOpenIncisionToolInHand(OpenIncisionToolType.IMS))
+            return "RMCSurgeryStepOpenIncisionWithIMS";
+
+        if (HasOpenIncisionToolInHand(OpenIncisionToolType.LaserScalpel))
+            return "RMCSurgeryStepOpenIncisionWithLaserScalpel";
+
+        return stepId;
     }
 
     private bool HasOpenIncisionToolInHand(OpenIncisionToolType toolType)

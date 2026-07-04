@@ -202,7 +202,9 @@ public abstract partial class SharedCMSurgerySystem
             return;
         }
 
-        if (!PreviousStepsComplete(body, part, surgery, args.Step) ||
+        var canonicalStep = NormalizeSurgeryStepForValidation(args.Surgery, args.Step);
+
+        if (!PreviousStepsComplete(body, part, surgery, canonicalStep) ||
             IsStepComplete(body, part, args.Step))
         {
             return;

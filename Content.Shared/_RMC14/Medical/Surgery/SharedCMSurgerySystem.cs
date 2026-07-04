@@ -73,11 +73,13 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
 
     private void OnTargetDoAfter(Entity<CMSurgeryTargetComponent> ent, ref CMSurgeryDoAfterEvent args)
     {
+        var canonicalStep = NormalizeSurgeryStepForValidation(args.Surgery, args.Step);
+
         if (args.Cancelled ||
             args.Handled ||
             args.Target is not { } target ||
             !IsSurgeryValid(ent, target, args.Surgery, args.Step, out var surgery, out var part, out var step) ||
-            !PreviousStepsComplete(ent, part, surgery, args.Step) ||
+            !PreviousStepsComplete(ent, part, surgery, canonicalStep) ||
             !CanPerformStep(args.User, ent, part.Comp.PartType, step, false, out _, out _, out var validTools))
         {
             Log.Warning($"{ToPrettyString(args.User)} tried to start invalid surgery.");
@@ -146,12 +148,14 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
         part = default;
         step = default;
 
+        var canonicalStepId = NormalizeSurgeryStepForValidation(surgery, stepId);
+
         if (!HasComp<CMSurgeryTargetComponent>(body) ||
             !IsLyingDown(body) ||
             !TryComp(targetPart, out BodyPartComponent? partComp) ||
             GetSingleton(surgery) is not { } surgeryEntId ||
             !TryComp(surgeryEntId, out CMSurgeryComponent? surgeryComp) ||
-            !surgeryComp.Steps.Contains(stepId) ||
+            !surgeryComp.Steps.Contains(canonicalStepId) ||
             GetSingleton(stepId) is not { } stepEnt)
         {
             return false;
@@ -168,6 +172,17 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
         part = (targetPart, partComp);
         step = stepEnt;
         return true;
+    }
+
+    protected static EntProtoId NormalizeSurgeryStepForValidation(EntProtoId surgeryId, EntProtoId stepId)
+    {
+        if (surgeryId == "CMSurgeryOpenIncision" &&
+            (stepId == "RMCSurgeryStepOpenIncisionWithIMS" || stepId == "RMCSurgeryStepOpenIncisionWithLaserScalpel"))
+        {
+            return "CMSurgeryStepOpenIncisionScalpel";
+        }
+
+        return stepId;
     }
 
     public EntityUid? GetSingleton(EntProtoId surgeryOrStep)
