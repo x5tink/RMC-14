@@ -108,7 +108,8 @@ public readonly record struct RMCSurgeryToolTypeEntry(
 public readonly record struct RMCSurgeryStepToolOverride(
     [property: DataField(required: true)] EntProtoId Step,
     [property: DataField] RMCSurgeryToolQuality? Quality = null,
-    [property: DataField] float SpeedMultiplier = 1f
+    [property: DataField] float SpeedMultiplier = 1f,
+    [property: DataField] float? ClampBleedersChance = null
 );
 
 public readonly record struct RMCSurgeryToolTypeResolved(

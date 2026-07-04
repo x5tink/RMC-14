@@ -7,6 +7,7 @@ using Content.Shared._RMC14.Marines.Skills;
 using Content.Shared._RMC14.Medical.Surgery;
 using Content.Shared._RMC14.Medical.Surgery.Conditions;
 using Content.Shared._RMC14.Medical.Surgery.Effects.Step;
+using Content.Shared._RMC14.Medical.Surgery.Steps.Parts;
 using Content.Shared._RMC14.Medical.Surgery.Tools;
 using Content.Shared._RMC14.Medical.Wounds;
 using Content.Shared._RMC14.Xenonids.Organs;
@@ -18,6 +19,7 @@ using Robust.Server.GameObjects;
 using Robust.Shared.Containers;
 using Robust.Shared.Network;
 using Robust.Shared.Prototypes;
+using Robust.Shared.Random;
 using Robust.Shared.Utility;
 
 namespace Content.Server._RMC14.Medical.Surgery;
@@ -31,6 +33,7 @@ public sealed class CMSurgerySystem : SharedCMSurgerySystem
     [Dependency] private readonly INetManager _net = default!;
     [Dependency] private readonly IPrototypeManager _prototypes = default!;
     [Dependency] private readonly PopupSystem _popup = default!;
+    [Dependency] private readonly IRobustRandom _random = default!;
     [Dependency] private readonly SkillsSystem _skills = default!;
     [Dependency] private readonly UserInterfaceSystem _ui = default!;
     [Dependency] private readonly WoundsSystem _wounds = default!;
@@ -45,6 +48,7 @@ public sealed class CMSurgerySystem : SharedCMSurgerySystem
 
         SubscribeLocalEvent<RMCSurgeryComplicationEffectsComponent, CMSurgeryStepEvent>(OnStepBleedComplete);
         SubscribeLocalEvent<RMCSurgeryComplicationEffectsComponent, CMSurgeryStepFailedEvent>(OnStepBleedFailed);
+        SubscribeLocalEvent<RMCSurgeryLaserScalpelClampChanceEffectComponent, CMSurgeryStepEvent>(OnLaserScalpelStepComplete);
         SubscribeLocalEvent<CMSurgeryClampBleedEffectComponent, CMSurgeryStepEvent>(OnStepClampBleedComplete);
         SubscribeLocalEvent<CMSurgeryStepEmoteEffectComponent, CMSurgeryStepEvent>(OnStepScreamComplete);
         SubscribeLocalEvent<RMCSurgeryStepSpawnEffectComponent, CMSurgeryStepEvent>(OnStepSpawnComplete);
@@ -127,6 +131,19 @@ public sealed class CMSurgerySystem : SharedCMSurgerySystem
             ent.Comp.FailureDirectDamage);
     }
 
+    private void OnLaserScalpelStepComplete(Entity<RMCSurgeryLaserScalpelClampChanceEffectComponent> ent, ref CMSurgeryStepEvent args)
+    {
+        if (!TryGetLaserScalpelClampChance(args.Tools, "RMCSurgeryStepOpenIncisionWithLaserScalpel", out var chance) ||
+            chance <= 0f ||
+            !_random.Prob(chance) ||
+            HasComp<CMBleedersClampedComponent>(args.Part))
+        {
+            return;
+        }
+
+        AddComp<CMBleedersClampedComponent>(args.Part);
+    }
+
     private void ApplyComplicationDamage(EntityUid body, int? bleedDamage, DamageSpecifier? directDamage)
     {
         if (bleedDamage is > 0)
@@ -134,6 +151,43 @@ public sealed class CMSurgerySystem : SharedCMSurgerySystem
 
         if (directDamage is { DamageDict.Count: > 0 })
             _damageable.TryChangeDamage(body, directDamage);
+    }
+
+    private bool TryGetLaserScalpelClampChance(List<EntityUid> tools, EntProtoId stepId, out float chance)
+    {
+        foreach (var tool in tools)
+        {
+            if (!TryComp(tool, out RMCSurgeryToolComponent? toolComp) || toolComp is null)
+                continue;
+
+            foreach (var toolType in toolComp.ToolTypes)
+            {
+                if (toolType.Kind != RMCSurgeryToolKind.LaserScalpel)
+                    continue;
+
+                if (toolType.StepOverrides is null)
+                {
+                    chance = 0f;
+                    return false;
+                }
+
+                foreach (var stepOverride in toolType.StepOverrides)
+                {
+                    if (stepOverride.Step != stepId || stepOverride.ClampBleedersChance is not { } overrideChance)
+                        continue;
+
+                    chance = overrideChance;
+                    return true;
+                }
+
+                // We found a valid laser scalpel tool but no clamp override for this step.
+                chance = 0f;
+                return false;
+            }
+        }
+
+        chance = 0f;
+        return false;
     }
 
     private void OnStepClampBleedComplete(Entity<CMSurgeryClampBleedEffectComponent> ent, ref CMSurgeryStepEvent args)

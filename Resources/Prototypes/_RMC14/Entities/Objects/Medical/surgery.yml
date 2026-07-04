@@ -221,6 +221,9 @@
       quality: Suboptimal
     - kind: LaserScalpel
       quality: Suboptimal
+      stepOverrides:
+      - step: RMCSurgeryStepOpenIncisionWithLaserScalpel
+        clampBleedersChance: 0.6
     - kind: Cautery
       quality: Awful
   - type: Sprite
@@ -254,6 +257,17 @@
   name: laser scalpel
   description: A scalpel augmented with a directed laser, for controlling bleeding as the incision is made. Also functions as a cautery. This one looks trustworthy, though it could be better.
   components:
+  - type: RMCSurgeryTool
+    toolTypes:
+    - kind: Scalpel
+      quality: Suboptimal
+    - kind: LaserScalpel
+      quality: Suboptimal
+      stepOverrides:
+      - step: RMCSurgeryStepOpenIncisionWithLaserScalpel
+        clampBleedersChance: 0.8
+    - kind: Cautery
+      quality: Awful
   - type: Sprite
     layers:
     - state: scalpel_laser_2
@@ -272,6 +286,17 @@
   name: advanced laser scalpel
   description: A scalpel augmented with a directed laser, for controlling bleeding as the incision is made. Also functions as a cautery. This one looks to be the pinnacle of precision energy cutlery!
   components:
+  - type: RMCSurgeryTool
+    toolTypes:
+    - kind: Scalpel
+      quality: Suboptimal
+    - kind: LaserScalpel
+      quality: Suboptimal
+      stepOverrides:
+      - step: RMCSurgeryStepOpenIncisionWithLaserScalpel
+        clampBleedersChance: 1.0
+    - kind: Cautery
+      quality: Awful
   - type: Sprite
     layers:
     - state: scalpel_laser_3
