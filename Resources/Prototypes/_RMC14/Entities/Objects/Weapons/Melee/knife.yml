@@ -32,10 +32,6 @@
     - Knife
     - RMCAttachmentBarrel
     - RMCM5Bayonet
-  - type: RMCSurgeryTool
-    toolTypes:
-    - kind: Scalpel
-      quality: Awful
   - type: Sprite
     sprite: _RMC14/Objects/Weapons/Melee/m5_bayonet.rsi
     state: icon
