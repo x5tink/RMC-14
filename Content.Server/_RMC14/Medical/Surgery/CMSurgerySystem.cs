@@ -43,8 +43,8 @@ public sealed class CMSurgerySystem : SharedCMSurgerySystem
 
         SubscribeLocalEvent<RMCSurgeryToolComponent, AfterInteractEvent>(OnToolAfterInteract);
 
-        SubscribeLocalEvent<CMSurgeryStepBleedEffectComponent, CMSurgeryStepEvent>(OnStepBleedComplete);
-        SubscribeLocalEvent<CMSurgeryStepBleedEffectComponent, CMSurgeryStepFailedEvent>(OnStepBleedFailed);
+        SubscribeLocalEvent<RMCSurgeryComplicationEffectsComponent, CMSurgeryStepEvent>(OnStepBleedComplete);
+        SubscribeLocalEvent<RMCSurgeryComplicationEffectsComponent, CMSurgeryStepFailedEvent>(OnStepBleedFailed);
         SubscribeLocalEvent<CMSurgeryClampBleedEffectComponent, CMSurgeryStepEvent>(OnStepClampBleedComplete);
         SubscribeLocalEvent<CMSurgeryStepEmoteEffectComponent, CMSurgeryStepEvent>(OnStepScreamComplete);
         SubscribeLocalEvent<RMCSurgeryStepSpawnEffectComponent, CMSurgeryStepEvent>(OnStepSpawnComplete);
@@ -111,29 +111,29 @@ public sealed class CMSurgerySystem : SharedCMSurgerySystem
         RefreshUI(args.Target.Value);
     }
 
-    private void OnStepBleedComplete(Entity<CMSurgeryStepBleedEffectComponent> ent, ref CMSurgeryStepEvent args)
+    private void OnStepBleedComplete(Entity<RMCSurgeryComplicationEffectsComponent> ent, ref CMSurgeryStepEvent args)
     {
-        if (!ent.Comp.OnSuccess)
-            return;
-
-        ApplyStepBleedDamage(args.Body, ent.Comp);
+        ApplyComplicationDamage(
+            args.Body,
+            ent.Comp.SuccessBleedDamage,
+            ent.Comp.SuccessDirectDamage);
     }
 
-    private void OnStepBleedFailed(Entity<CMSurgeryStepBleedEffectComponent> ent, ref CMSurgeryStepFailedEvent args)
+    private void OnStepBleedFailed(Entity<RMCSurgeryComplicationEffectsComponent> ent, ref CMSurgeryStepFailedEvent args)
     {
-        if (!ent.Comp.OnFailure)
-            return;
-
-        ApplyStepBleedDamage(args.Body, ent.Comp);
+        ApplyComplicationDamage(
+            args.Body,
+            ent.Comp.FailureBleedDamage,
+            ent.Comp.FailureDirectDamage);
     }
 
-    private void ApplyStepBleedDamage(EntityUid body, CMSurgeryStepBleedEffectComponent effect)
+    private void ApplyComplicationDamage(EntityUid body, int? bleedDamage, DamageSpecifier? directDamage)
     {
-        if (effect.Damage > 0)
-            _wounds.AddWound(body, effect.Damage, WoundType.Surgery, TimeSpan.MaxValue);
+        if (bleedDamage is > 0)
+            _wounds.AddWound(body, bleedDamage.Value, WoundType.Surgery, TimeSpan.MaxValue);
 
-        if (effect.DirectDamage.DamageDict.Count > 0)
-            _damageable.TryChangeDamage(body, effect.DirectDamage);
+        if (directDamage is { DamageDict.Count: > 0 })
+            _damageable.TryChangeDamage(body, directDamage);
     }
 
     private void OnStepClampBleedComplete(Entity<CMSurgeryClampBleedEffectComponent> ent, ref CMSurgeryStepEvent args)

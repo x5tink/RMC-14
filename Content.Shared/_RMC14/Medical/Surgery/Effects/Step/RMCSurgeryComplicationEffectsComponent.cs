@@ -1,21 +1,21 @@
-﻿using Robust.Shared.GameStates;
+using Robust.Shared.GameStates;
 using Content.Shared.Damage;
 
 namespace Content.Shared._RMC14.Medical.Surgery.Effects.Step;
 
 [RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 [Access(typeof(SharedCMSurgerySystem))]
-public sealed partial class CMSurgeryStepBleedEffectComponent : Component
+public sealed partial class RMCSurgeryComplicationEffectsComponent : Component
 {
     [DataField, AutoNetworkedField]
-    public int Damage;
+    public int? SuccessBleedDamage;
 
     [DataField, AutoNetworkedField]
-    public DamageSpecifier DirectDamage = new();
+    public int? FailureBleedDamage;
 
     [DataField, AutoNetworkedField]
-    public bool OnSuccess = true;
+    public DamageSpecifier? SuccessDirectDamage;
 
     [DataField, AutoNetworkedField]
-    public bool OnFailure;
+    public DamageSpecifier? FailureDirectDamage;
 }

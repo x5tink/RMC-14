@@ -21,9 +21,8 @@
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/scalpel.rsi
     state: scalpel
-  - type: CMSurgeryStepBleedEffect
-    damage: 10
-    onFailure: true
+  - type: RMCSurgeryComplicationEffects
+    SuccessBleedDamage: 10
   - type: CMSurgeryStepEmoteEffect
 
 - type: entity
@@ -281,10 +280,8 @@
     sprite: _RMC14/Objects/Medical/Surgery/scalpel.rsi
     state: scalpel_manager
   - type: CMSurgeryStepEmoteEffect
-  - type: CMSurgeryStepBleedEffect
-    onSuccess: false
-    onFailure: true
-    directDamage:
+  - type: RMCSurgeryComplicationEffects
+    FailureDirectDamage:
       types:
         Blunt: 15
         Heat: 15
@@ -309,10 +306,8 @@
     sprite: _RMC14/Objects/Medical/Surgery/scalpel.rsi
     state: scalpel_laser
   - type: CMSurgeryStepEmoteEffect
-  - type: CMSurgeryStepBleedEffect
-    onSuccess: false
-    onFailure: true
-    directDamage:
+  - type: RMCSurgeryComplicationEffects
+    FailureDirectDamage:
       types:
         Blunt: 7.5
         Heat: 12.5
