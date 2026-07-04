@@ -26,7 +26,7 @@
   - type: RMCSurgeryTool
     toolTypes:
     - kind: Retractor
-      quality: Suboptimal
+      quality: Ideal
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/retractor.rsi
     state: retractor
@@ -58,7 +58,7 @@
   - type: RMCSurgeryTool
     toolTypes:
     - kind: Hemostat
-      quality: Suboptimal
+      quality: Ideal
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/hemostat.rsi
     state: hemostat
@@ -90,7 +90,7 @@
   - type: RMCSurgeryTool
     toolTypes:
     - kind: Cautery
-      quality: Suboptimal
+      quality: Ideal
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/cautery.rsi
     state: cautery
@@ -129,7 +129,7 @@
   - type: RMCSurgeryTool
     toolTypes:
     - kind: Drill
-      quality: Suboptimal
+      quality: Ideal
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/drill.rsi
     state: drill
@@ -169,7 +169,7 @@
   - type: RMCSurgeryTool
     toolTypes:
     - kind: Scalpel
-      quality: Suboptimal
+      quality: Ideal
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/scalpel.rsi
     state: scalpel
@@ -218,9 +218,9 @@
   - type: RMCSurgeryTool
     toolTypes:
     - kind: Scalpel
-      quality: Suboptimal
+      quality: Ideal
     - kind: LaserScalpel
-      quality: Suboptimal
+      quality: Ideal
       stepOverrides:
       - step: RMCSurgeryStepOpenIncisionWithLaserScalpel
         clampBleedersChance: 0.6
@@ -260,9 +260,9 @@
   - type: RMCSurgeryTool
     toolTypes:
     - kind: Scalpel
-      quality: Suboptimal
+      quality: Ideal
     - kind: LaserScalpel
-      quality: Suboptimal
+      quality: Ideal
       stepOverrides:
       - step: RMCSurgeryStepOpenIncisionWithLaserScalpel
         clampBleedersChance: 0.8
@@ -289,9 +289,9 @@
   - type: RMCSurgeryTool
     toolTypes:
     - kind: Scalpel
-      quality: Suboptimal
+      quality: Ideal
     - kind: LaserScalpel
-      quality: Suboptimal
+      quality: Ideal
       stepOverrides:
       - step: RMCSurgeryStepOpenIncisionWithLaserScalpel
         clampBleedersChance: 1.0
@@ -321,7 +321,12 @@
       quality: Suboptimal
       stepOverrides:
       - step: CMSurgeryStepCutLarvaRoots
-        quality: Ideal
+        quality: Ideal    
+    - kind: Hemostat
+      quality: NotUsable
+      stepOverrides:
+      - step: CMSurgeryStepRemoveLarva
+        quality: Ideal    
     - kind: Cautery
       quality: Awful
   - type: Sprite
@@ -337,8 +342,6 @@
   components:
   - type: RMCSurgeryTool
     toolTypes:
-    - kind: Scalpel
-      quality: Suboptimal
     - kind: ScalpelManager
       quality: Ideal
   - type: Sprite
@@ -354,7 +357,7 @@
   - type: RMCSurgeryTool
     toolTypes:
     - kind: BoneSaw
-      quality: Suboptimal
+      quality: Ideal
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/saw.rsi
     state: saw
@@ -459,7 +462,7 @@
   - type: RMCSurgeryTool
     toolTypes:
     - kind: BoneGel
-      quality: Suboptimal
+      quality: Ideal
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/bone_gel.rsi
     state: bone-gel
