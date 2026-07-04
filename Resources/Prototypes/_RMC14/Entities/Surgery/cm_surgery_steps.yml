@@ -352,3 +352,51 @@
       types:
         Blunt: 7.5
         Heat: 12.5
+
+- type: entity
+  parent: CMSurgeryStepBase
+  id: RMCSurgeryStepCutLarvaRootsWithPict
+  name: Cut larva roots With the PICT System
+  components:
+  - type: CMSurgeryStep
+    skill: 2
+    tool:
+    - PictSystem
+    startSound:
+      path: /Audio/_RMC14/Medical/Surgery/cautery1.ogg
+    endSound:
+      path: /Audio/_RMC14/Medical/Surgery/cautery2.ogg
+  - type: CMSurgeryCutLarvaRootsStep
+  - type: Sprite
+    sprite: _RMC14/Objects/Medical/Surgery/scalpel.rsi
+    state: pict_system
+  - type: CMSurgeryOperatingTableCondition
+  - type: RMCSurgeryComplicationEffects
+    FailureDirectDamage:
+      types:
+        Heat: 15
+
+- type: entity
+  parent: CMSurgeryStepBase
+  id: RMCSurgeryStepRemoveLarvaWithPict
+  name: Remove larva with the PICT System
+  components:
+  - type: CMSurgeryStep
+    skill: 2
+    tool:
+    - PictSystem
+    startSound:
+      path: /Audio/_RMC14/Medical/Surgery/cautery1.ogg
+    endSound:
+      path: /Audio/_RMC14/Medical/Surgery/cautery2.ogg
+    bodyRemove:
+    - type: VictimInfected
+  - type: Sprite
+    sprite: _RMC14/Objects/Medical/Surgery/scalpel.rsi
+    state: pict_system
+  - type: CMSurgeryOperatingTableCondition
+  - type: RMCSurgeryStepLarvaEffect
+  - type: RMCSurgeryComplicationEffects
+    FailureDirectDamage:
+      types:
+        Heat: 15

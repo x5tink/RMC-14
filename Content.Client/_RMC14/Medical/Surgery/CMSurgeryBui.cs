@@ -309,19 +309,30 @@ public sealed class CMSurgeryBui : BoundUserInterface
 
     private EntProtoId GetEffectiveStepId(EntProtoId surgeryId, EntProtoId stepId)
     {
-        if (surgeryId != "CMSurgeryOpenIncision" || stepId != "CMSurgeryStepOpenIncisionScalpel")
+        if (surgeryId == "CMSurgeryOpenIncision" && stepId == "CMSurgeryStepOpenIncisionScalpel")
+        {
+            if (HasReplacementToolInHand(ReplacementToolType.IMS))
+                return "RMCSurgeryStepOpenIncisionWithIMS";
+
+            if (HasReplacementToolInHand(ReplacementToolType.LaserScalpel))
+                return "RMCSurgeryStepOpenIncisionWithLaserScalpel";
+
             return stepId;
+        }
 
-        if (HasOpenIncisionToolInHand(OpenIncisionToolType.IMS))
-            return "RMCSurgeryStepOpenIncisionWithIMS";
+        if (surgeryId == "CMSurgeryAlienEmbryoRemoval")
+        {
+            if (stepId == "CMSurgeryStepCutLarvaRoots" && HasReplacementToolInHand(ReplacementToolType.PictSystem))
+                return "RMCSurgeryStepCutLarvaRootsWithPict";
 
-        if (HasOpenIncisionToolInHand(OpenIncisionToolType.LaserScalpel))
-            return "RMCSurgeryStepOpenIncisionWithLaserScalpel";
+            if (stepId == "CMSurgeryStepRemoveLarva" && HasReplacementToolInHand(ReplacementToolType.PictSystem))
+                return "RMCSurgeryStepRemoveLarvaWithPict";
+        }
 
         return stepId;
     }
 
-    private bool HasOpenIncisionToolInHand(OpenIncisionToolType toolType)
+    private bool HasReplacementToolInHand(ReplacementToolType toolType)
     {
         if (_player.LocalEntity is not { } player ||
             !_entities.TryGetComponent(player, out HandsComponent? hands))
@@ -332,12 +343,15 @@ public sealed class CMSurgeryBui : BoundUserInterface
         var held = _hands.EnumerateHeld((player, hands));
         return toolType switch
         {
-            OpenIncisionToolType.IMS => held.Any(uid =>
+            ReplacementToolType.IMS => held.Any(uid =>
                 _entities.TryGetComponent(uid, out RMCSurgeryToolComponent? toolComp) &&
                 toolComp.ToolTypes.Any(entry => entry.Kind == RMCSurgeryToolKind.ScalpelManager)),
-            OpenIncisionToolType.LaserScalpel => held.Any(uid =>
+            ReplacementToolType.LaserScalpel => held.Any(uid =>
                 _entities.TryGetComponent(uid, out RMCSurgeryToolComponent? toolComp) &&
                 toolComp.ToolTypes.Any(entry => entry.Kind == RMCSurgeryToolKind.LaserScalpel)),
+            ReplacementToolType.PictSystem => held.Any(uid =>
+                _entities.TryGetComponent(uid, out RMCSurgeryToolComponent? toolComp) &&
+                toolComp.ToolTypes.Any(entry => entry.Kind == RMCSurgeryToolKind.PictSystem)),
             _ => false,
         };
     }
@@ -534,9 +548,10 @@ public sealed class CMSurgeryBui : BoundUserInterface
         Incomplete,
     }
 
-    private enum OpenIncisionToolType
+    private enum ReplacementToolType
     {
         IMS,
         LaserScalpel,
+        PictSystem,
     }
 }

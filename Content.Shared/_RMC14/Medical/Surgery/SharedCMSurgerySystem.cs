@@ -182,6 +182,15 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
             return "CMSurgeryStepOpenIncisionScalpel";
         }
 
+        if (surgeryId == "CMSurgeryAlienEmbryoRemoval")
+        {
+            if (stepId == "RMCSurgeryStepCutLarvaRootsWithPict")
+                return "CMSurgeryStepCutLarvaRoots";
+
+            if (stepId == "RMCSurgeryStepRemoveLarvaWithPict")
+                return "CMSurgeryStepRemoveLarva";
+        }
+
         return stepId;
     }
 

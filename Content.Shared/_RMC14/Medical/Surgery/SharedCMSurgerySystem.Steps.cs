@@ -388,6 +388,7 @@ public abstract partial class SharedCMSurgerySystem
             RMCSurgeryToolKind.BoneGel => "bone gel",
             RMCSurgeryToolKind.ScalpelManager => "an incision management system",
             RMCSurgeryToolKind.LaserScalpel => "a laser scalpel",
+            RMCSurgeryToolKind.PictSystem => "a PICT system",
             _ => "an appropriate tool",
         };
     }

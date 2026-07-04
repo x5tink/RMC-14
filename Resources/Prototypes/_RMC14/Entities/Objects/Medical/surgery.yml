@@ -317,16 +317,13 @@
   components:
   - type: RMCSurgeryTool
     toolTypes:
+    - kind: PictSystem
+      quality: Ideal
     - kind: Scalpel
       quality: Suboptimal
       stepOverrides:
       - step: CMSurgeryStepCutLarvaRoots
-        quality: Ideal    
-    - kind: Hemostat
-      quality: NotUsable
-      stepOverrides:
-      - step: CMSurgeryStepRemoveLarva
-        quality: Ideal    
+        quality: Ideal     
     - kind: Cautery
       quality: Awful
   - type: Sprite

@@ -78,6 +78,7 @@ public enum RMCSurgeryToolKind : byte
     BoneGel,
     ScalpelManager,
     LaserScalpel,
+    PictSystem,
 }
 
 [Serializable, NetSerializable]
