@@ -134,6 +134,15 @@
     state: scalpel
   - type: CMSurgeryOperatingTableCondition
   - type: RMCSurgeryComplicationEffects
+    SuccessSplashEnabled: true
+    FailureSplashEnabled: true
+    SplashAffectsBody: true
+    SplashDamage:
+      types:
+        Heat: 12
+    SplashSound:
+      collection: XenoAcidSizzle
+    SplashDecalSpawner: RMCDecalSpawnerAcidBloodSplash
     FailureDirectDamage:
       types:
         Heat: 15

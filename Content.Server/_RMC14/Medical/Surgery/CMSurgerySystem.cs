@@ -10,12 +10,14 @@ using Content.Shared._RMC14.Medical.Surgery.Effects.Step;
 using Content.Shared._RMC14.Medical.Surgery.Steps.Parts;
 using Content.Shared._RMC14.Medical.Surgery.Tools;
 using Content.Shared._RMC14.Medical.Wounds;
+using Content.Shared._RMC14.Xenonids;
 using Content.Shared._RMC14.Xenonids.Organs;
 using Content.Shared._RMC14.Xenonids.Parasite;
 using Content.Shared.Damage;
 using Content.Shared.Interaction;
 using Content.Shared.Prototypes;
 using Robust.Server.GameObjects;
+using Robust.Shared.Audio.Systems;
 using Robust.Shared.Containers;
 using Robust.Shared.Network;
 using Robust.Shared.Prototypes;
@@ -27,9 +29,11 @@ namespace Content.Server._RMC14.Medical.Surgery;
 public sealed class CMSurgerySystem : SharedCMSurgerySystem
 {
     [Dependency] private readonly BodySystem _body = default!;
+    [Dependency] private readonly SharedAudioSystem _audio = default!;
     [Dependency] private readonly ChatSystem _chat = default!;
     [Dependency] private readonly SharedContainerSystem _container = default!;
     [Dependency] private readonly DamageableSystem _damageable = default!;
+    [Dependency] private readonly EntityLookupSystem _entityLookup = default!;
     [Dependency] private readonly INetManager _net = default!;
     [Dependency] private readonly IPrototypeManager _prototypes = default!;
     [Dependency] private readonly PopupSystem _popup = default!;
@@ -121,6 +125,8 @@ public sealed class CMSurgerySystem : SharedCMSurgerySystem
             args.Body,
             ent.Comp.SuccessBleedDamage,
             ent.Comp.SuccessDirectDamage);
+
+        ApplyComplicationSplash(ent.Owner, args.Body, args.User, ent.Comp, failed: false);
     }
 
     private void OnStepBleedFailed(Entity<RMCSurgeryComplicationEffectsComponent> ent, ref CMSurgeryStepFailedEvent args)
@@ -129,6 +135,8 @@ public sealed class CMSurgerySystem : SharedCMSurgerySystem
             args.Body,
             ent.Comp.FailureBleedDamage,
             ent.Comp.FailureDirectDamage);
+
+        ApplyComplicationSplash(ent.Owner, args.Body, args.User, ent.Comp, failed: true);
     }
 
     private void OnLaserScalpelStepComplete(Entity<RMCSurgeryLaserScalpelClampChanceEffectComponent> ent, ref CMSurgeryStepEvent args)
@@ -151,6 +159,77 @@ public sealed class CMSurgerySystem : SharedCMSurgerySystem
 
         if (directDamage is { DamageDict.Count: > 0 })
             _damageable.TryChangeDamage(body, directDamage);
+    }
+
+    private void ApplyComplicationSplash(EntityUid step, EntityUid body, EntityUid user, RMCSurgeryComplicationEffectsComponent effects, bool failed)
+    {
+        var isStandardLarvaRoots = MetaData(step).EntityPrototype?.ID == "CMSurgeryStepCutLarvaRoots";
+
+        var enabled = failed
+            ? effects.FailureSplashEnabled
+            : effects.SuccessSplashEnabled;
+
+        if (!enabled && isStandardLarvaRoots)
+            enabled = true;
+
+        if (!enabled)
+        {
+            return;
+        }
+
+        if (!TryComp(body, out TransformComponent? xform))
+            return;
+
+        var splashRadius = effects.SplashRadius;
+        var splashDamage = effects.SplashDamage;
+        var splashDecalSpawner = effects.SplashDecalSpawner;
+        var splashAffectsBody = effects.SplashAffectsBody;
+
+        if (isStandardLarvaRoots)
+        {
+            if (splashRadius <= 0f)
+                splashRadius = 1.5f;
+
+            splashAffectsBody = true;
+
+            splashDecalSpawner ??= "RMCDecalSpawnerAcidBloodSplash";
+
+            if (splashDamage is not { DamageDict.Count: > 0 })
+                splashDamage = effects.FailureDirectDamage;
+
+            if (splashDamage is not { DamageDict.Count: > 0 })
+            {
+                splashDamage = new DamageSpecifier
+                {
+                    DamageDict =
+                    {
+                        ["Heat"] = 12,
+                    },
+                };
+            }
+        }
+
+        if (splashDecalSpawner is { } spawner)
+            Spawn(spawner, xform.Coordinates);
+
+        _audio.PlayPvs(effects.SplashSound, body);
+
+        if (splashRadius <= 0f ||
+            splashDamage is not { DamageDict.Count: > 0 })
+        {
+            return;
+        }
+
+        foreach (var target in _entityLookup.GetEntitiesInRange(xform.Coordinates, splashRadius))
+        {
+            if (target == body && !splashAffectsBody)
+                continue;
+
+            if (!effects.SplashAffectsXenos && HasComp<XenoComponent>(target))
+                continue;
+
+            _damageable.TryChangeDamage(target, splashDamage);
+        }
     }
 
     private bool TryGetLaserScalpelClampChance(List<EntityUid> tools, EntProtoId stepId, out float chance)
