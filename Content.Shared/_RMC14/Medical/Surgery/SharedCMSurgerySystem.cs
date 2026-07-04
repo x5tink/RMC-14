@@ -3,6 +3,7 @@ using Content.Shared._RMC14.Marines.Skills;
 using Content.Shared._RMC14.Medical.Surgery.Conditions;
 using Content.Shared._RMC14.Medical.Surgery.Steps;
 using Content.Shared._RMC14.Medical.Surgery.Steps.Parts;
+using Content.Shared._RMC14.Medical.Surgery.Tools;
 using Content.Shared._RMC14.Xenonids.Organs;
 using Content.Shared._RMC14.Xenonids.Parasite;
 using Content.Shared.Body.Part;
@@ -43,11 +44,6 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
     [Dependency] private readonly SharedTransformSystem _transform = default!;
 
     private readonly Dictionary<EntProtoId, EntityUid> _surgeries = new();
-    private static readonly ProtoId<TagPrototype> ToolIdealTag = "RMCSurgeryToolIdeal";
-    private static readonly ProtoId<TagPrototype> ToolSuboptimalTag = "RMCSurgeryToolSuboptimal";
-    private static readonly ProtoId<TagPrototype> ToolSubstituteTag = "RMCSurgeryToolSubstitute";
-    private static readonly ProtoId<TagPrototype> ToolBadSubstituteTag = "RMCSurgeryToolBadSubstitute";
-    private static readonly ProtoId<TagPrototype> ToolAwfulTag = "RMCSurgeryToolAwful";
     private static readonly ProtoId<TagPrototype> SurfaceIdealTag = "RMCSurgerySurfaceIdeal";
     private static readonly ProtoId<TagPrototype> SurfaceAdequateTag = "RMCSurgerySurfaceAdequate";
     private static readonly ProtoId<TagPrototype> SurfaceUnsuitedTag = "RMCSurgerySurfaceUnsuited";
@@ -89,9 +85,13 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
         }
 
         if (_net.IsServer &&
-            !TryStepSuccess(ent.Owner, args.User, validTools, out var successChance))
+            !_random.Prob(args.SuccessChance))
         {
-            _popup.PopupEntity(Loc.GetString("rmc-surgery-step-failed", ("chance", (int) (successChance * 100))), args.User, PopupType.SmallCaution);
+            var failEvent = new CMSurgeryStepFailedEvent(args.User, ent, part, GetTools(args.User));
+            RaiseLocalEvent(step, ref failEvent);
+
+            _popup.PopupEntity(Loc.GetString("rmc-surgery-step-failed", ("chance", (int) (args.SuccessChance * 100))), args.User, PopupType.SmallCaution);
+            RefreshUI(ent);
             return;
         }
 
@@ -208,13 +208,27 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
         return false;
     }
 
-    private bool TryStepSuccess(EntityUid body, EntityUid user, HashSet<EntityUid>? tools, out float successChance)
+    protected float GetStepSuccessChance(EntityUid body,
+        EntityUid user,
+        List<EntityUid>? tools,
+        IReadOnlyCollection<RMCSurgeryToolKind> requiredKinds,
+        EntProtoId step)
     {
-        var totalPenalty = GetToolSuitabilityScore(tools) + GetSurfaceSuitabilityScore(body) + GetSkillCompensationScore(user);
+        var totalPenalty = GetToolSuitabilityScore(tools, requiredKinds, step) + GetSurfaceSuitabilityScore(body) + GetSkillCompensationScore(user);
         var failureChance = GetFailureChance(totalPenalty);
-        successChance = 1f - failureChance;
+        return 1f - failureChance;
+    }
 
-        return _random.Prob(successChance);
+    protected float GetStepDurationMultiplier(EntityUid body,
+        EntityUid user,
+        List<EntityUid>? tools,
+        IReadOnlyCollection<RMCSurgeryToolKind> requiredKinds,
+        EntProtoId step)
+    {
+        var toolMultiplier = GetToolSpeedMultiplier(tools, requiredKinds, step);
+        var surfaceMultiplier = GetSurfaceSpeedMultiplier(body);
+        var skillMultiplier = GetSkillSpeedMultiplier(user);
+        return toolMultiplier * surfaceMultiplier * skillMultiplier;
     }
 
     private static float GetFailureChance(int totalPenalty)
@@ -246,6 +260,24 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
         };
     }
 
+    private float GetSkillSpeedMultiplier(EntityUid user)
+    {
+        if (!TryComp(user, out SkillsComponent? skills) ||
+            !_skills.SkillNames.TryGetValue("RMCSkillSurgery", out var surgerySkill))
+        {
+            return 1.2f;
+        }
+
+        Entity<SkillsComponent?> userSkills = (user, skills);
+        var skillLevel = _skills.GetSkill(userSkills, surgerySkill);
+        return skillLevel switch
+        {
+            <= 0 => 1.2f,
+            1 => 1f,
+            _ => 0.6f,
+        };
+    }
+
     private int GetSurfaceSuitabilityScore(EntityUid body)
     {
         if (!TryComp(body, out BuckleComponent? buckle) || !Exists(buckle.BuckledTo))
@@ -269,48 +301,95 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
         return -1;
     }
 
-    private int GetToolSuitabilityScore(HashSet<EntityUid>? tools)
+    private float GetSurfaceSpeedMultiplier(EntityUid body)
+    {
+        if (!TryComp(body, out BuckleComponent? buckle) || !Exists(buckle.BuckledTo))
+            return 2f;
+
+        if (HasComp<CMOperatingTableComponent>(buckle.BuckledTo))
+            return 1f;
+
+        if (!TryComp(buckle.BuckledTo, out TagComponent? tags))
+            return 1.67f;
+
+        if (_tags.HasTag(tags, SurfaceIdealTag))
+            return 1f;
+
+        if (_tags.HasTag(tags, SurfaceAdequateTag))
+            return 1.33f;
+
+        if (_tags.HasTag(tags, SurfaceUnsuitedTag))
+            return 1.67f;
+
+        if (_tags.HasTag(tags, SurfaceAwfulTag))
+            return 2f;
+
+        return 1.67f;
+    }
+
+    private int GetToolSuitabilityScore(List<EntityUid>? tools, IReadOnlyCollection<RMCSurgeryToolKind> requiredKinds, EntProtoId step)
     {
         if (tools == null)
             return 0;
 
         foreach (var tool in tools)
         {
-            if (TryGetToolSuitability(tool, out var suitability))
+            if (TryGetToolSuitability(tool, requiredKinds, step, out var suitability, out _))
                 return suitability;
         }
 
         return 0;
     }
 
-    private bool TryGetToolSuitability(EntityUid tool, out int suitability)
+    private float GetToolSpeedMultiplier(List<EntityUid>? tools, IReadOnlyCollection<RMCSurgeryToolKind> requiredKinds, EntProtoId step)
     {
-        if (!TryComp(tool, out TagComponent? tags))
+        if (tools == null)
+            return 1.8f;
+
+        foreach (var tool in tools)
+        {
+            if (TryGetToolSuitability(tool, requiredKinds, step, out _, out var speedMultiplier))
+                return speedMultiplier;
+        }
+
+        return 1.8f;
+    }
+
+    private bool TryGetToolSuitability(EntityUid tool,
+        IReadOnlyCollection<RMCSurgeryToolKind> requiredKinds,
+        EntProtoId step,
+        out int suitability,
+        out float speedMultiplier)
+    {
+        if (!TryComp(tool, out RMCSurgeryToolComponent? surgeryTool) ||
+            !surgeryTool.TryGetBestTypeForStep(step, requiredKinds, out var resolved))
         {
             suitability = default;
+            speedMultiplier = default;
             return false;
         }
 
-        if (_tags.HasTag(tags, ToolIdealTag) || _tags.HasTag(tags, ToolSuboptimalTag) || _tags.HasTag(tags, ToolSubstituteTag))
+        speedMultiplier = resolved.Quality switch
         {
-            suitability = 0;
-            return true;
-        }
+            RMCSurgeryToolQuality.Ideal => 1f,
+            RMCSurgeryToolQuality.Suboptimal => 1.2f,
+            RMCSurgeryToolQuality.Substitute => 1.4f,
+            RMCSurgeryToolQuality.BadSubstitute => 1.6f,
+            _ => 1.8f,
+        };
 
-        if (_tags.HasTag(tags, ToolBadSubstituteTag))
+        speedMultiplier *= resolved.SpeedMultiplier;
+
+        suitability = resolved.Quality switch
         {
-            suitability = -1;
-            return true;
-        }
+            RMCSurgeryToolQuality.Ideal => 0,
+            RMCSurgeryToolQuality.Suboptimal => 0,
+            RMCSurgeryToolQuality.Substitute => 0,
+            RMCSurgeryToolQuality.BadSubstitute => -1,
+            _ => -2,
+        };
 
-        if (_tags.HasTag(tags, ToolAwfulTag))
-        {
-            suitability = -2;
-            return true;
-        }
-
-        suitability = default;
-        return false;
+        return true;
     }
 
     protected virtual void RefreshUI(EntityUid body)

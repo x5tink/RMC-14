@@ -8,6 +8,7 @@ using Content.Shared.DoAfter;
 using Content.Shared.Inventory;
 using Content.Shared.Popups;
 using Robust.Shared.Prototypes;
+using System.Linq;
 
 namespace Content.Shared._RMC14.Medical.Surgery;
 
@@ -39,9 +40,9 @@ public abstract partial class SharedCMSurgerySystem
         EntityUid? firstValidTool = null;
         if (ent.Comp.Tool != null)
         {
-            foreach (var reg in ent.Comp.Tool.Values)
+            foreach (var requiredKind in ent.Comp.Tool)
             {
-                if (!AnyHaveComp(args.Tools, reg.Component, out var tool))
+                if (!TryFindToolForKind(args.Tools, requiredKind, out var tool))
                     return;
 
                 firstValidTool ??= tool;
@@ -55,7 +56,7 @@ public abstract partial class SharedCMSurgerySystem
                 _audio.PlayPvs(ent.Comp.EndSound, args.Body);
             }
             else if (firstValidTool is { } validTool &&
-                     TryComp(validTool, out CMSurgeryToolComponent? toolComp) &&
+                     TryComp(validTool, out RMCSurgeryToolComponent? toolComp) &&
                      toolComp.EndSound != null)
             {
                 _audio.PlayPvs(toolComp.EndSound, validTool);
@@ -155,21 +156,20 @@ public abstract partial class SharedCMSurgerySystem
 
         if (ent.Comp.Tool != null)
         {
-            args.ValidTools ??= new HashSet<EntityUid>();
+            args.ValidTools ??= new List<EntityUid>();
 
-            foreach (var reg in ent.Comp.Tool.Values)
+            foreach (var requiredKind in ent.Comp.Tool)
             {
-                if (!AnyHaveComp(args.Tools, reg.Component, out var withComp))
+                if (!TryFindToolForKind(args.Tools, requiredKind, out var withComp))
                 {
                     args.Invalid = StepInvalidReason.MissingTool;
-
-                    if (reg.Component is ICMSurgeryToolComponent tool)
-                        args.Popup = $"You need {tool.ToolName} to perform this step!";
+                    args.Popup = $"You need {GetToolPopupName(requiredKind)} to perform this step!";
 
                     return;
                 }
 
-                args.ValidTools.Add(withComp);
+                if (!args.ValidTools.Contains(withComp))
+                    args.ValidTools.Add(withComp);
             }
         }
     }
@@ -211,6 +211,13 @@ public abstract partial class SharedCMSurgerySystem
         if (!CanPerformStep(user, body, part.Comp.PartType, step, true, out _, out _, out var validTools))
             return;
 
+        var requiredKinds = TryComp(step, out CMSurgeryStepComponent? currentStepComp) ?
+            (IReadOnlyCollection<RMCSurgeryToolKind>) (currentStepComp.Tool ?? new List<RMCSurgeryToolKind>()) :
+            Array.Empty<RMCSurgeryToolKind>();
+
+        var successChance = GetStepSuccessChance(body, user, validTools, requiredKinds, args.Step);
+        var durationMultiplier = GetStepDurationMultiplier(body, user, validTools, requiredKinds, args.Step);
+
         if (_net.IsServer)
         {
             if (TryComp(step, out CMSurgeryStepComponent? stepComp) &&
@@ -222,7 +229,7 @@ public abstract partial class SharedCMSurgerySystem
             {
                 foreach (var tool in validTools)
                 {
-                    if (TryComp(tool, out CMSurgeryToolComponent? toolComp) &&
+                    if (TryComp(tool, out RMCSurgeryToolComponent? toolComp) &&
                         toolComp.StartSound != null)
                     {
                         _audio.PlayPvs(toolComp.StartSound, tool);
@@ -234,8 +241,8 @@ public abstract partial class SharedCMSurgerySystem
         if (TryComp(body, out TransformComponent? xform))
             _rotateToFace.TryFaceCoordinates(user, _transform.GetMapCoordinates(body, xform).Position);
 
-        var ev = new CMSurgeryDoAfterEvent(args.Surgery, args.Step);
-        var doAfter = new DoAfterArgs(EntityManager, user, 2, ev, body, part)
+        var ev = new CMSurgeryDoAfterEvent(args.Surgery, args.Step, successChance);
+        var doAfter = new DoAfterArgs(EntityManager, user, 2f * durationMultiplier, ev, body, part)
         {
             BreakOnMove = true,
             TargetEffect = "RMCEffectHealBusy",
@@ -301,7 +308,7 @@ public abstract partial class SharedCMSurgerySystem
         return true;
     }
 
-    public bool CanPerformStep(EntityUid user, EntityUid body, BodyPartType part, EntityUid step, bool doPopup, out string? popup, out StepInvalidReason reason, out HashSet<EntityUid>? validTools)
+    public bool CanPerformStep(EntityUid user, EntityUid body, BodyPartType part, EntityUid step, bool doPopup, out string? popup, out StepInvalidReason reason, out List<EntityUid>? validTools)
     {
         var slot = part switch
         {
@@ -350,11 +357,12 @@ public abstract partial class SharedCMSurgerySystem
         return !ev.Cancelled;
     }
 
-    private bool AnyHaveComp(List<EntityUid> tools, IComponent component, out EntityUid withComp)
+    private bool TryFindToolForKind(List<EntityUid> tools, RMCSurgeryToolKind kind, out EntityUid withComp)
     {
         foreach (var tool in tools)
         {
-            if (HasComp(tool, component.GetType()))
+            if (TryComp(tool, out RMCSurgeryToolComponent? toolComp) &&
+                toolComp.ToolTypes.Any(toolType => toolType.Kind == kind))
             {
                 withComp = tool;
                 return true;
@@ -363,5 +371,22 @@ public abstract partial class SharedCMSurgerySystem
 
         withComp = default;
         return false;
+    }
+
+    private static string GetToolPopupName(RMCSurgeryToolKind kind)
+    {
+        return kind switch
+        {
+            RMCSurgeryToolKind.Retractor => "a retractor",
+            RMCSurgeryToolKind.Hemostat => "a hemostat",
+            RMCSurgeryToolKind.Cautery => "a cautery",
+            RMCSurgeryToolKind.Drill => "a surgical drill",
+            RMCSurgeryToolKind.Scalpel => "a scalpel",
+            RMCSurgeryToolKind.BoneSaw => "a bone saw",
+            RMCSurgeryToolKind.BoneGel => "bone gel",
+            RMCSurgeryToolKind.ScalpelManager => "an incision management system",
+            RMCSurgeryToolKind.LaserScalpel => "a laser scalpel",
+            _ => "an appropriate tool",
+        };
     }
 }

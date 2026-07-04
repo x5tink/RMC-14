@@ -11,6 +11,7 @@ using Content.Shared._RMC14.Medical.Surgery.Tools;
 using Content.Shared._RMC14.Medical.Wounds;
 using Content.Shared._RMC14.Xenonids.Organs;
 using Content.Shared._RMC14.Xenonids.Parasite;
+using Content.Shared.Damage;
 using Content.Shared.Interaction;
 using Content.Shared.Prototypes;
 using Robust.Server.GameObjects;
@@ -26,6 +27,7 @@ public sealed class CMSurgerySystem : SharedCMSurgerySystem
     [Dependency] private readonly BodySystem _body = default!;
     [Dependency] private readonly ChatSystem _chat = default!;
     [Dependency] private readonly SharedContainerSystem _container = default!;
+    [Dependency] private readonly DamageableSystem _damageable = default!;
     [Dependency] private readonly INetManager _net = default!;
     [Dependency] private readonly IPrototypeManager _prototypes = default!;
     [Dependency] private readonly PopupSystem _popup = default!;
@@ -39,9 +41,10 @@ public sealed class CMSurgerySystem : SharedCMSurgerySystem
     {
         base.Initialize();
 
-        SubscribeLocalEvent<CMSurgeryToolComponent, AfterInteractEvent>(OnToolAfterInteract);
+        SubscribeLocalEvent<RMCSurgeryToolComponent, AfterInteractEvent>(OnToolAfterInteract);
 
         SubscribeLocalEvent<CMSurgeryStepBleedEffectComponent, CMSurgeryStepEvent>(OnStepBleedComplete);
+        SubscribeLocalEvent<CMSurgeryStepBleedEffectComponent, CMSurgeryStepFailedEvent>(OnStepBleedFailed);
         SubscribeLocalEvent<CMSurgeryClampBleedEffectComponent, CMSurgeryStepEvent>(OnStepClampBleedComplete);
         SubscribeLocalEvent<CMSurgeryStepEmoteEffectComponent, CMSurgeryStepEvent>(OnStepScreamComplete);
         SubscribeLocalEvent<RMCSurgeryStepSpawnEffectComponent, CMSurgeryStepEvent>(OnStepSpawnComplete);
@@ -79,7 +82,7 @@ public sealed class CMSurgerySystem : SharedCMSurgerySystem
         _ui.SetUiState(body, CMSurgeryUIKey.Key, new CMSurgeryBuiState(surgeries));
     }
 
-    private void OnToolAfterInteract(Entity<CMSurgeryToolComponent> ent, ref AfterInteractEvent args)
+    private void OnToolAfterInteract(Entity<RMCSurgeryToolComponent> ent, ref AfterInteractEvent args)
     {
         var user = args.User;
         if (args.Handled ||
@@ -110,7 +113,27 @@ public sealed class CMSurgerySystem : SharedCMSurgerySystem
 
     private void OnStepBleedComplete(Entity<CMSurgeryStepBleedEffectComponent> ent, ref CMSurgeryStepEvent args)
     {
-        _wounds.AddWound(args.Body, ent.Comp.Damage, WoundType.Surgery, TimeSpan.MaxValue);
+        if (!ent.Comp.OnSuccess)
+            return;
+
+        ApplyStepBleedDamage(args.Body, ent.Comp);
+    }
+
+    private void OnStepBleedFailed(Entity<CMSurgeryStepBleedEffectComponent> ent, ref CMSurgeryStepFailedEvent args)
+    {
+        if (!ent.Comp.OnFailure)
+            return;
+
+        ApplyStepBleedDamage(args.Body, ent.Comp);
+    }
+
+    private void ApplyStepBleedDamage(EntityUid body, CMSurgeryStepBleedEffectComponent effect)
+    {
+        if (effect.Damage > 0)
+            _wounds.AddWound(body, effect.Damage, WoundType.Surgery, TimeSpan.MaxValue);
+
+        if (effect.DirectDamage.DamageDict.Count > 0)
+            _damageable.TryChangeDamage(body, effect.DirectDamage);
     }
 
     private void OnStepClampBleedComplete(Entity<CMSurgeryClampBleedEffectComponent> ent, ref CMSurgeryStepEvent args)

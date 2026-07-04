@@ -199,21 +199,6 @@
   id: RMCDataDisk
 
 - type: Tag
-  id: RMCSurgeryToolIdeal
-
-- type: Tag
-  id: RMCSurgeryToolSuboptimal
-
-- type: Tag
-  id: RMCSurgeryToolSubstitute
-
-- type: Tag
-  id: RMCSurgeryToolBadSubstitute
-
-- type: Tag
-  id: RMCSurgeryToolAwful
-
-- type: Tag
   id: RMCSurgerySurfaceIdeal
 
 - type: Tag

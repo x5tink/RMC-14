@@ -8,7 +8,7 @@
   components:
   - type: Item
     size: Small
-  - type: CMSurgeryTool
+  - type: RMCSurgeryTool
   - type: Clothing
     quickEquip: false
     slots:
@@ -23,17 +23,15 @@
   name: retractor
   description: Retracts stuff.
   components:
-  - type: Tag
-    tags:
-    - RMCSurgeryToolSuboptimal
-
-  - type: CMSurgeryTool
+  - type: RMCSurgeryTool
+    toolTypes:
+    - kind: Retractor
+      quality: Suboptimal
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/retractor.rsi
     state: retractor
   - type: Item
     sprite: _RMC14/Objects/Medical/Surgery/retractor.rsi
-  - type: CMRetractor
   - type: PhysicalComposition
     materialComposition:
       CMSteel: 10000
@@ -57,17 +55,15 @@
   name: hemostat
   description: You think you have seen this before.
   components:
-  - type: Tag
-    tags:
-    - RMCSurgeryToolSuboptimal
-
-  - type: CMSurgeryTool
+  - type: RMCSurgeryTool
+    toolTypes:
+    - kind: Hemostat
+      quality: Suboptimal
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/hemostat.rsi
     state: hemostat
   - type: Item
     sprite: _RMC14/Objects/Medical/Surgery/hemostat.rsi
-  - type: CMHemostat
   - type: PhysicalComposition
     materialComposition:
       CMSteel: 5000
@@ -91,11 +87,10 @@
   name: cautery
   description: This stops bleeding.
   components:
-  - type: Tag
-    tags:
-    - RMCSurgeryToolSuboptimal
-
-  - type: CMSurgeryTool
+  - type: RMCSurgeryTool
+    toolTypes:
+    - kind: Cautery
+      quality: Suboptimal
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/cautery.rsi
     state: cautery
@@ -108,7 +103,6 @@
         Heat: 5
     soundHit:
       path: /Audio/Effects/lightburn.ogg
-  - type: CMCautery
   - type: PhysicalComposition
     materialComposition:
       CMSteel: 5000
@@ -132,11 +126,10 @@
   name: surgical drill
   description: You can drill using this item. You dig?
   components:
-  - type: Tag
-    tags:
-    - RMCSurgeryToolSuboptimal
-
-  - type: CMSurgeryTool
+  - type: RMCSurgeryTool
+    toolTypes:
+    - kind: Drill
+      quality: Suboptimal
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/drill.rsi
     state: drill
@@ -148,7 +141,6 @@
         Piercing: 10
     soundHit:
       path: /Audio/Items/drill_hit.ogg
-  - type: CMSurgicalDrill
   - type: PhysicalComposition
     materialComposition:
       CMSteel: 15000
@@ -174,7 +166,10 @@
   name: scalpel
   description: Cut, cut, and once more cut.
   components:
-  - type: CMSurgeryTool
+  - type: RMCSurgeryTool
+    toolTypes:
+    - kind: Scalpel
+      quality: Suboptimal
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/scalpel.rsi
     state: scalpel
@@ -195,11 +190,9 @@
         Slash: 8
     soundHit:
       path: /Audio/Weapons/bladeslice.ogg
-  - type: CMScalpel
   - type: Tag
     tags:
     - RMCScalpel
-    - RMCSurgeryToolSuboptimal
 
   - type: PhysicalComposition
     materialComposition:
@@ -222,9 +215,14 @@
   name: prototype laser scalpel
   description: A scalpel augmented with a directed laser, for controlling bleeding as the incision is made. Also functions as a cautery. This one looks like an unreliable early model.
   components:
-  - type: CMSurgeryTool
-  - type: RMCLaserScalpel
-  - type: CMCautery
+  - type: RMCSurgeryTool
+    toolTypes:
+    - kind: Scalpel
+      quality: Suboptimal
+    - kind: LaserScalpel
+      quality: Suboptimal
+    - kind: Cautery
+      quality: Awful
   - type: Sprite
     layers:
     - state: scalpel_laser
@@ -292,9 +290,17 @@
   name: PICT system
   description: The Precision Incision and Cauterization Tool uses a high-frequency vibrating blade, laser cautery, and suction liquid control system to precisely sever target tissues while preventing all fluid leakage. Despite its troubled development program and horrifying price tag, outside of complex experimental surgeries it isn't any better than an ordinary twenty-dollar scalpel and can't create a full-length incision bloodlessly.
   components:
+  - type: RMCSurgeryTool
+    toolTypes:
+    - kind: Scalpel
+      quality: Suboptimal
+      stepOverrides:
+      - step: CMSurgeryStepCutLarvaRoots
+        quality: Ideal
+    - kind: Cautery
+      quality: Awful
   - type: Sprite
     state: pict_system
-  - type: CMCautery
 
 
 # - Manager
@@ -304,7 +310,12 @@
   name: incision management system
   description: A true extension of the surgeon's body, this marvel completely prepares an incision allowing for the efficient commencement of therapeutic steps.
   components:
-  - type: RMCScalpelManager
+  - type: RMCSurgeryTool
+    toolTypes:
+    - kind: Scalpel
+      quality: Suboptimal
+    - kind: ScalpelManager
+      quality: Ideal
   - type: Sprite
     state: scalpel_manager
 
@@ -315,11 +326,10 @@
   name: circular saw
   description: For heavy-duty cutting.
   components:
-  - type: Tag
-    tags:
-    - RMCSurgeryToolSuboptimal
-
-  - type: CMSurgeryTool
+  - type: RMCSurgeryTool
+    toolTypes:
+    - kind: BoneSaw
+      quality: Suboptimal
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/saw.rsi
     state: saw
@@ -335,7 +345,6 @@
     qualities:
     - Sawing
     speedModifier: 1.5
-  - type: CMBoneSaw
   - type: PhysicalComposition
     materialComposition:
       CMSteel: 20000
@@ -361,10 +370,6 @@
   name: bone setter
   description: Used for setting bones back into place.
   components: # TODO RMC14
-  - type: Tag
-    tags:
-    - RMCSurgeryToolSuboptimal
-
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/bonesetter.rsi
     state: bonesetter
@@ -396,10 +401,6 @@
   name: wound clamp
   description: Used for clamping wounds after treatment.
   components: # TODO RMC14
-  - type: Tag
-    tags:
-    - RMCSurgeryToolSuboptimal
-
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/wound_clamp.rsi
     state: wound_clamp
@@ -415,10 +416,6 @@
   name: We-Ya Brand Automatic Autopsy System(TM)
   description: Putting the FUN back in Autopsy.  This little gadget performs an entire autopsy of whatever strange life form you've found in about 30 seconds.
   components: # TODO RMC14
-  - type: Tag
-    tags:
-    - RMCSurgeryToolSuboptimal
-
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/scalpel.rsi
     state: scalpel_laser_2
@@ -434,14 +431,13 @@
   name: bottle of bone gel
   description: A container for bone gel that often needs to be refilled from a specialized machine.
   components:
-  - type: Tag
-    tags:
-    - RMCSurgeryToolSuboptimal
-
+  - type: RMCSurgeryTool
+    toolTypes:
+    - kind: BoneGel
+      quality: Suboptimal
   - type: Sprite
     sprite: _RMC14/Objects/Medical/Surgery/bone_gel.rsi
     state: bone-gel
-  - type: CMBoneGel
   - type: RMCLoreExaminable
     content: rmc-lore-examinable-bottle-of-bone-gel
   - type: PhysicalComposition

@@ -342,8 +342,12 @@ public sealed class CMSurgeryBui : BoundUserInterface
         var held = _hands.EnumerateHeld((player, hands));
         return toolType switch
         {
-            OpenIncisionToolType.IMS => held.Any(uid => _entities.HasComponent<RMCScalpelManagerComponent>(uid)),
-            OpenIncisionToolType.LaserScalpel => held.Any(uid => _entities.HasComponent<RMCLaserScalpelComponent>(uid)),
+            OpenIncisionToolType.IMS => held.Any(uid =>
+                _entities.TryGetComponent(uid, out RMCSurgeryToolComponent? toolComp) &&
+                toolComp.ToolTypes.Any(entry => entry.Kind == RMCSurgeryToolKind.ScalpelManager)),
+            OpenIncisionToolType.LaserScalpel => held.Any(uid =>
+                _entities.TryGetComponent(uid, out RMCSurgeryToolComponent? toolComp) &&
+                toolComp.ToolTypes.Any(entry => entry.Kind == RMCSurgeryToolKind.LaserScalpel)),
             _ => false,
         };
     }
