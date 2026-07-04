@@ -28,7 +28,7 @@
       - CMSurgicalLine
       - CMSynthGraft
       components:
-      - CMSurgeryTool
+      - RMCSurgeryTool
 # TODO Should also be able to have PICT FixOVein and Nanopaste
   - type: PhysicalComposition
     materialComposition:

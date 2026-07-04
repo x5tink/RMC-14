@@ -188,7 +188,7 @@
   - type: AllowSuitStorage
     whitelist:
       components:
-      - CMSurgeryTool
+      - RMCSurgeryTool
       - RMCLighter
       - Stunbaton
       - Gun

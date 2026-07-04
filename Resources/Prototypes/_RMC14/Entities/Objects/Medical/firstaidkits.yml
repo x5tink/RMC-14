@@ -114,7 +114,7 @@
       - CMSurgicalCase
       components:
       - Hypospray
-      - CMSurgeryTool
+      - RMCSurgeryTool
 
 - type: entity
   parent: CMFirstAidKit
