@@ -22,6 +22,11 @@
     size: Tiny
     sprite: Objects/Consumable/Smokeables/Cigarettes/cigarette.rsi
     heldPrefix: unlit
+  - type: RMCSurgeryTool
+    requiresHotCautery: true
+    toolTypes:
+    - kind: Cautery
+      quality: Suboptimal
   - type: Construction
     graph: smokeableCigarette
     node: cigarette

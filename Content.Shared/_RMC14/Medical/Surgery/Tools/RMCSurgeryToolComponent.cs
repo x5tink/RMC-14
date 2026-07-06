@@ -26,6 +26,9 @@ public sealed partial class RMCSurgeryToolComponent : Component
     [DataField, AutoNetworkedField]
     public List<RMCSurgeryToolTypeEntry> ToolTypes = new();
 
+    [DataField, AutoNetworkedField]
+    public bool RequiresHotCautery = false;
+
     public bool TryGetBestTypeForStep(EntProtoId step, IReadOnlyCollection<RMCSurgeryToolKind> requiredKinds, out RMCSurgeryToolTypeResolved resolved)
     {
         RMCSurgeryToolTypeResolved? best = null;

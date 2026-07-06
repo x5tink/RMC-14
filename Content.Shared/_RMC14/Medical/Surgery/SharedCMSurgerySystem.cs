@@ -13,10 +13,13 @@ using Content.Shared.DoAfter;
 using Content.Shared.GameTicking;
 using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Interaction;
+using Content.Shared.Smoking;
+using Content.Shared.Nutrition.Components;
 using Content.Shared.Mobs.Systems;
 using Content.Shared.Popups;
 using Content.Shared.Standing;
 using Content.Shared.Tag;
+using Content.Shared.Temperature;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Map;
 using Robust.Shared.Network;
@@ -393,6 +396,15 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
             return false;
         }
 
+        if (resolved.Kind == RMCSurgeryToolKind.Cautery &&
+            surgeryTool.RequiresHotCautery &&
+            !IsHot(tool))
+        {
+            suitability = default;
+            speedMultiplier = default;
+            return false;
+        }
+
         speedMultiplier = resolved.Quality switch
         {
             RMCSurgeryToolQuality.Ideal => 1f,
@@ -414,6 +426,16 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
         };
 
         return true;
+    }
+
+    private bool IsHot(EntityUid tool)
+    {
+        if (HasComp<BurningComponent>(tool))
+            return true;
+
+        var hot = new IsHotEvent();
+        RaiseLocalEvent(tool, hot);
+        return hot.IsHot;
     }
 
     protected virtual void RefreshUI(EntityUid body)

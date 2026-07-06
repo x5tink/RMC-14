@@ -364,7 +364,8 @@ public abstract partial class SharedCMSurgerySystem
         foreach (var tool in tools)
         {
             if (TryComp(tool, out RMCSurgeryToolComponent? toolComp) &&
-                toolComp.ToolTypes.Any(toolType => toolType.Kind == kind))
+                toolComp.ToolTypes.Any(toolType => toolType.Kind == kind) &&
+                (!toolComp.RequiresHotCautery || kind != RMCSurgeryToolKind.Cautery || IsHot(tool)))
             {
                 withComp = tool;
                 return true;
