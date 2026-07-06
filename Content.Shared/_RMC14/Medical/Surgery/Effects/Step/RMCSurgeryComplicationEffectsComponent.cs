@@ -28,7 +28,7 @@ public sealed partial class RMCSurgeryComplicationEffectsComponent : Component
     public bool FailureSplashEnabled;
 
     [DataField, AutoNetworkedField]
-    public float SplashRadius = 1.5f;
+    public float SplashRadius = 2.5f;
 
     [DataField, AutoNetworkedField]
     public DamageSpecifier? SplashDamage;
