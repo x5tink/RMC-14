@@ -9,6 +9,7 @@
   - type: Item
     size: Small
   - type: RMCSurgeryTool
+    openSurgeryMenu: true
   - type: Clothing
     quickEquip: false
     slots:

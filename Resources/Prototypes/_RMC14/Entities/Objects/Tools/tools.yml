@@ -40,6 +40,10 @@
   - type: PhysicalComposition
     materialComposition:
       CMSteel: 75
+  - type: RMCSurgeryTool
+    toolTypes:
+    - kind: BoneGel
+      quality: Substitute
 
 - type: entity
   parent: Wirecutter

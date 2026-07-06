@@ -107,6 +107,9 @@ public sealed class CMSurgerySystem : SharedCMSurgerySystem
             return;
         }
 
+        if (!ent.Comp.OpenSurgeryMenu)
+            return;
+
         if (user == args.Target)
         {
             _popup.PopupEntity("You can't perform surgery on yourself!", user, user);

@@ -29,6 +29,7 @@
       path: /Audio/Items/Culinary/chop.ogg
   - type: DeleteOnExplosion
   - type: RMCSurgeryTool
+    openSurgeryMenu: true
     toolTypes:
     - kind: Scalpel
       quality: Substitute
