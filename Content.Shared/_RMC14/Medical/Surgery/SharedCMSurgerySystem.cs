@@ -250,7 +250,7 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
         return false;
     }
 
-    protected float GetStepSuccessChance(EntityUid body,
+    public float GetStepSuccessChance(EntityUid body,
         EntityUid user,
         List<EntityUid>? tools,
         IReadOnlyCollection<RMCSurgeryToolKind> requiredKinds,
@@ -261,7 +261,7 @@ public abstract partial class SharedCMSurgerySystem : EntitySystem
         return 1f - failureChance;
     }
 
-    protected float GetStepDurationMultiplier(EntityUid body,
+    public float GetStepDurationMultiplier(EntityUid body,
         EntityUid user,
         List<EntityUid>? tools,
         IReadOnlyCollection<RMCSurgeryToolKind> requiredKinds,

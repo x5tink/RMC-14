@@ -5,6 +5,7 @@ using Content.Shared.FixedPoint;
 using Content.Shared.Popups;
 using Content.Shared.Projectiles;
 using Content.Shared.Alert;
+using Content.Shared._RMC14.Medical.Surgery;
 using Content.Shared._RMC14.Medical.Surgery.Tools;
 using Content.Shared._RMC14.Xenonids;
 using Content.Shared._RMC14.Emote;
@@ -23,10 +24,13 @@ namespace Content.Shared._RMC14.Embeds;
 public abstract partial class SharedForeignObjectEmbeddedSystem : EntitySystem
 {
     private static readonly ProtoId<AlertPrototype> EmbeddedObjectAlert = "ForeignObjectEmbedded";
+    private static readonly EntProtoId SelfExtractionStep = "RMCSelfStepExtractForeignObject";
+
     [Dependency] private readonly AlertsSystem _alerts = default!;
     [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
     [Dependency] private readonly SharedHandsSystem _hands = default!;
     [Dependency] private readonly SharedRMCEmoteSystem _emote = default!;
+    [Dependency] private readonly SharedCMSurgerySystem _surgery = default!;
     [Dependency] private readonly IRobustRandom _random = default!;
     [Dependency] private readonly IGameTiming _timing = default!;
     [Dependency] private readonly DamageableSystem _damageable = default!;
@@ -56,11 +60,15 @@ public abstract partial class SharedForeignObjectEmbeddedSystem : EntitySystem
         if (entries.Length == 0)
             return;
 
+        var requiredKinds = new[] { RMCSurgeryToolKind.Scalpel };
+        var validTools = new List<EntityUid> { held.Value };
+        var durationMultiplier = _surgery.GetStepDurationMultiplier(ent.Owner, ent.Owner, validTools, requiredKinds, SelfExtractionStep);
+
         var selected = entries[_random.Next(entries.Length)];
         var doAfter = new DoAfterArgs(
             EntityManager,
             ent,
-            20f,
+            2f * durationMultiplier,
             new ForeignObjectSelfExtractionDoAfterEvent(selected.BodyPart, selected.Symmetry),
             ent,
             ent,
